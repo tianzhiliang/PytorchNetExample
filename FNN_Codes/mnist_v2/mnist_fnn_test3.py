@@ -239,6 +239,8 @@ class FnnNet5(nn.Module):
         x3 = F.relu(x2)
         return x3
 
+class 
+
 class FnnNet6(nn.Module):
     def __init__(self):
         super(FnnNet6, self).__init__()
@@ -262,6 +264,7 @@ class FnnNet6(nn.Module):
         #torch.set_printoptions(profile="default")
         x3 = F.relu(x2)
         return x3
+
 ## training
 #model = FnnNet()
 #model = FnnNet2()

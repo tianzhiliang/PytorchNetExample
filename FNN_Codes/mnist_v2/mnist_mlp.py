@@ -96,5 +96,5 @@ for epoch in range(5):
             print('==>>> epoch: {}, batch index: {}, test loss: {:.6f}, acc: {:.3f}'.format(
                 epoch, batch_idx+1, ave_loss, correct_cnt * 1.0 / total_cnt))
 
-torch.save(model.state_dict(), model.name())
+#torch.save(model.state_dict(), model.name())
   

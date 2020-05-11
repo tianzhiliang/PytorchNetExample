@@ -6,6 +6,7 @@ import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torch.nn.functional as F
 import torch.optim as optim
+from mnist_fnn_test_standard import Linear_with_param_adapt
 ## load mnist dataset
 use_cuda = torch.cuda.is_available()
 

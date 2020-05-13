@@ -50,40 +50,6 @@ class MLPNet(nn.Module):
     def name(self):
         return "MLP"
 
-"""class Linear_with_param_adapt(nn.Module):
-    def __init__(self, dim_in, dim_out, bias=True):
-        super(Linear_with_param_adapt, self).__init__()
-        self.use_bias = bias
-        self.dim_in = dim_in
-        self.dim_out = dim_out
-        self.weight = nn.Parameter(torch.rand(self.dim_out, self.dim_in))
-        init.kaiming_uniform_(self.weight, a=math.sqrt(5))
-        if self.use_bias:
-            self.bias = nn.Parameter(torch.rand(self.dim_out))
-            bound = 1 / math.sqrt(self.dim_out)
-            init.uniform_(self.bias, -bound, bound)
-        else:
-            self.register_parameter('bias', None)
-
-    def forward(self, x, adapt_vector=None):
-        if adapt_vector is not None:
-            weight = self.weight * adapt_vector
-        else:
-            weight = self.weight
-        code_verion = 1 # both 0 and 1 are OK
-        if code_verion == 0:
-            W_times_x = torch.mm(x, weight.t())
-            if self.use_bias:
-                b = self.bias.repeat(W_times_x.shape[0], 1)
-                y = W_times_x + b
-            else:
-                y = W_times_x
-        elif code_verion == 1:
-            #y = F.linear(x, weight.t(), self.bias)
-            y = F.linear(x, weight, self.bias)
-        return y
-        """
-
 class Linear_with_param_adapt(nn.Module):
     def __init__(self, dim_in, dim_out, bias=True):
         super(Linear_with_param_adapt, self).__init__()

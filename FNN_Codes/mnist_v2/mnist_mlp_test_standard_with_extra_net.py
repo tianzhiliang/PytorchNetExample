@@ -96,8 +96,9 @@ class MLPNet2(nn.Module):
         self.fc1 = Linear_with_param_adapt(28*28, 500)
         self.fc2 = Linear_with_param_adapt(500, 256)
         self.fc3 = Linear_with_param_adapt(256, 10)
-        self.with_extra_feature_opt = 6 # 0: none 1&2: fix random vector 3&4: learnable emb as vector
-        # 1&3: only first layer 2&4: all layers
+        self.with_extra_feature_opt = 8
+        # 0: none 1&2: fix random vector 3&4: learnable emb as vector 5&6: learnable param with gate2
+        # 1&3&5: only first layer 2&4&6: all layers 
 
         if self.with_extra_feature_opt in [1, 2]:
             self.rand_input1 = Variable(torch.rand([28*28, 500]), requires_grad=False)
@@ -110,12 +111,12 @@ class MLPNet2(nn.Module):
         if self.with_extra_feature_opt in [4]:
             self.emb2 = nn.Embedding(1, 256*500)
             self.emb3 = nn.Embedding(1, 256*10)
-        if self.with_extra_feature_opt in [5,6]:
+        if self.with_extra_feature_opt in [5,6,7,8]:
             self.emb1 = nn.Embedding(1, 128)
             self.fc_for_weight1 = nn.Linear(128, 28*28*500)
             self.fc_for_gate_fc11 = nn.Linear(128, 128)
             self.fc_for_gate_fc21 = nn.Linear(128, 1)
-        if self.with_extra_feature_opt in [6]:
+        if self.with_extra_feature_opt in [6,8]:
             self.emb2 = nn.Embedding(1, 128)
             self.fc_for_weight2 = nn.Linear(128, 256*500)
             self.fc_for_gate_fc12 = nn.Linear(128, 128)
@@ -136,52 +137,65 @@ class MLPNet2(nn.Module):
             if self.with_extra_feature_opt in [4]:
                 self.emb2 = self.emb2.cuda()
                 self.emb3 = self.emb3.cuda()
-            if self.with_extra_feature_opt in [5]:
-                self.emb1 = self.emb.cuda()
-                self.fc_for_weight1 = self.fc_for_weight.cuda()
-                self.fc_for_gate_fc11 = self.fc_for_gate_fc1.cuda()
-                self.fc_for_gate_fc21 = self.fc_for_gate_fc2.cuda()
-                self.emb2 = self.emb.cuda()
-                self.fc_for_weight2 = self.fc_for_weight.cuda()
-                self.fc_for_gate_fc12 = self.fc_for_gate_fc1.cuda()
-                self.fc_for_gate_fc22 = self.fc_for_gate_fc2.cuda()
-                self.emb3 = self.emb.cuda()
-                self.fc_for_weight3 = self.fc_for_weight.cuda()
-                self.fc_for_gate_fc13 = self.fc_for_gate_fc1.cuda()
-                self.fc_for_gate_fc23 = self.fc_for_gate_fc2.cuda()
+            if self.with_extra_feature_opt in [5,6,7,8]:
+                self.emb1 = self.emb1.cuda()
+                self.fc_for_weight1 = self.fc_for_weight1.cuda()
+                self.fc_for_gate_fc11 = self.fc_for_gate_fc11.cuda()
+                self.fc_for_gate_fc21 = self.fc_for_gate_fc21.cuda()
+            if self.with_extra_feature_opt in [6,8]:
+                self.emb2 = self.emb2.cuda()
+                self.fc_for_weight2 = self.fc_for_weight2.cuda()
+                self.fc_for_gate_fc12 = self.fc_for_gate_fc12.cuda()
+                self.fc_for_gate_fc22 = self.fc_for_gate_fc22.cuda()
+                self.emb3 = self.emb3.cuda()
+                self.fc_for_weight3 = self.fc_for_weight3.cuda()
+                self.fc_for_gate_fc13 = self.fc_for_gate_fc13.cuda()
+                self.fc_for_gate_fc23 = self.fc_for_gate_fc23.cuda()
 
     def forward(self, x):
         x = x.view(-1, 28*28)
 
-        if self.with_extra_feature_opt in [3, 4, 5, 6]:
+        if self.with_extra_feature_opt in [3, 4, 5, 6, 7, 8]:
             zero = Variable(torch.tensor([0]).long(), requires_grad=False)
             if use_cuda:
                 zero = zero.cuda()
 
-        if self.with_extra_feature_opt in [5,6]:
+        if self.with_extra_feature_opt in [5,6,7,8]:
             emb_vec1 = self.emb1(zero)
             fc1_vec1 = self.fc_for_weight1(emb_vec1)
-            gate1_vec1 = F.relu(self.fc_for_gate_fc11(emb_vec1))
-            gate1 = torch.sigmoid(self.fc_for_gate_fc21(gate1_vec1))
-            task_vec1 = fc1_vec1 * gate1
+            if self.with_extra_feature_opt in [5,6]:
+                gate1_vec1 = F.relu(self.fc_for_gate_fc11(emb_vec1))
+                gate1 = torch.sigmoid(self.fc_for_gate_fc21(gate1_vec1))
+                task_vec1 = fc1_vec1 * gate1
+            elif self.with_extra_feature_opt in [7,8]:
+                task_vec1 = fc1_vec1 
+
             x = F.relu(self.fc1(x,adapt_vector_for_weight=task_vec1))
-        if self.with_extra_feature_opt in [5]:
+        if self.with_extra_feature_opt in [5,7]:
             x = F.relu(self.fc2(x))
             x = self.fc3(x)
             return x
-        elif self.with_extra_feature_opt in [6]:
+
+        elif self.with_extra_feature_opt in [6,8]:
             emb_vec2 = self.emb2(zero)
             fc1_vec2 = self.fc_for_weight2(emb_vec2)
-            gate1_vec2 = F.relu(self.fc_for_gate_fc12(emb_vec2))
-            gate2 = torch.sigmoid(self.fc_for_gate_fc22(gate1_vec2))
-            task_vec2 = fc1_vec2 * gate2
+            if self.with_extra_feature_opt in [6]:
+                gate1_vec2 = F.relu(self.fc_for_gate_fc12(emb_vec2))
+                gate2 = torch.sigmoid(self.fc_for_gate_fc22(gate1_vec2))
+                task_vec2 = fc1_vec2 * gate2
+            elif self.with_extra_feature_opt in [8]:
+                task_vec2 = fc1_vec2
             x = F.relu(self.fc2(x,adapt_vector_for_weight=task_vec2))
 
             emb_vec3 = self.emb3(zero)
             fc1_vec3 = self.fc_for_weight3(emb_vec3)
-            gate1_vec3 = F.relu(self.fc_for_gate_fc13(emb_vec3))
-            gate3 = torch.sigmoid(self.fc_for_gate_fc23(gate1_vec3))
-            task_vec3 = fc1_vec3 * gate3
+            if self.with_extra_feature_opt in [6]:
+                gate1_vec3 = F.relu(self.fc_for_gate_fc13(emb_vec3))
+                gate3 = torch.sigmoid(self.fc_for_gate_fc23(gate1_vec3))
+                task_vec3 = fc1_vec3 * gate3
+            elif self.with_extra_feature_opt in [8]:
+                task_vec3 = fc1_vec3 
+
             x = self.fc3(x,adapt_vector_for_weight=task_vec3)
             return x
 
